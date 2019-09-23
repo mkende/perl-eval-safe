@@ -1,0 +1,14 @@
+lib/Eval/Safe.pm
+lib/Eval/Safe/Eval.pm
+lib/Eval/Safe/Safe.pm
+LICENSE
+Makefile.PL
+MANIFEST
+t/000-load.t
+t/001-pod.t
+t/002-new.t
+t/003-eval.t
+t/004-wrap.t
+t/005-share.t
+t/006-destroy.t
+t/007-exceptions.t

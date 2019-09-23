@@ -1,0 +1,82 @@
+=head1 Eval::Safe - Simplified safe evaluation of Perl code
+
+=head2 DESCRIPTION
+
+B<Eval::Safe> is a Perl module to allow executing Perl code like with the
+B<eval> function, but in isolation from the main program. This is similar to the
+L<Safe> module, but faster, as we don't try to be safe.
+
+=head2 DOCUMENTATION
+
+The L<Safe> module does 3 things when running user-provided code: run the code
+in a specific package so that variables in the calling code are not modified by
+mistake; actually hide all the existing packages so that the executed code
+cannot modify them; and limit the set of operations that can be executed by the
+code to further try to make it safe (prevents it from modifying the system,
+etc.).
+
+The B<Eval::Safe> module here only does the first of these things (changing the 
+namespace in which the code is executed) to make it conveniant to run
+user-provided code, as long as you can trust that code. The benefit is that this
+is around three times faster than using L<Safe> (especially for small pieces of
+code).
+
+The documentation for the module can be found on L<meta::cpan|Eval::Safe>.
+After the module is installed, you can also get its documentation by running
+B<perldoc Eval::Safe> (this usually comes in a B<perl-doc> package on most
+systems).
+
+=head2 INSTALLATION
+
+=head3 Requirements
+
+Building and installing this module only requires Perl modules from the
+standard library. So as long as you have Perl installed (which should be the
+case by default on almost all system), you should be able to install it using
+one of the method below. This module requires Perl version 5.22 or above. You
+can check which Perl you have installed with the following command:
+
+    perl -v
+
+=head3 Installing from the Git sources
+
+To install the program manually from Git, you can run the following commands (you do need to have the B<make> and B<git> program installed):
+
+    git clone https://github.com/mkende/perl-eval-safe.git
+    cd perl-eval-safe
+    perl Makefile.PL
+    make
+    make test
+    sudo make install
+
+=head3 Installing from CPAN
+
+This module is available on CPAN (the Perl package manager). The CPAN command
+should be installed on any system that has Perl (which, again, should mostly be
+any system at all). So, to install the module automatically using CPAN, you can 
+just run the following command:
+
+    cpan Eval::Safe
+
+Note: if this is the first time that you run the B<cpan> command, you will be
+asked to configure it. The default answer to most questions is usually fine.
+
+=head2 DISTRIBUTION
+
+The main development of this software is done on
+L<GitHub|https://github.com/mkende/perl-eval-safe>. However, it is also
+available on CPAN.
+
+The following can be used only by the module maintainer on CPAN. To update the
+CPAN module, remember to increment the version number and then run the following
+commands:
+
+    perl Makefile.PL
+    make distcheck
+    # Optionally, to add files not in the manifest:
+    # make manifest
+    make dist
+
+Finally, upload the F<Eval-Safe-I<version>.tar.gz> file that has been created
+through L<PAUSE|https://pause.perl.org>, ideally putting it under an
+F<Eval-Safe> directory.
