@@ -14,13 +14,11 @@ WriteMakefile(
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => '0',
     },
-    BUILD_REQUIRES => {
-        'Scalar::Util'         => 0,
-    },
     PREREQ_PM => {
         'Carp'                  => 0,
         'List::Util'            => 0,
         'Safe'                  => 0,
+        'Scalar::Util'          => 0,
     },
     NO_MYMETA => 1,
     META_MERGE => {
@@ -32,9 +30,13 @@ WriteMakefile(
         namespace => [ 'Eval::Safe' ],
       },  
       prereqs => {
+        # build, test, runtime; suggests, recommands, requires
         test => {
           suggests => {
             'Test::Pod'   => 1.22,
+          },
+          requires => {
+           'Scalar::Util' => 0,
           },
         },
       },

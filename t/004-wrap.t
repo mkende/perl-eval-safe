@@ -6,7 +6,7 @@ use warnings;
 use Eval::Safe;
 use Test::More;
 
-plan tests => 2 * 2;
+plan tests => 4;
 
 for my $safe (0..1) {
   my $s = $safe ? ' safe' : '';

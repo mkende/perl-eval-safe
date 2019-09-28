@@ -6,7 +6,7 @@ use warnings;
 use Eval::Safe;
 use Test::More;
 
-plan tests => 12 * 2;
+plan tests => 24;
 
 {
   package t;

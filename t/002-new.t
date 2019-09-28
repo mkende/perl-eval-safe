@@ -23,4 +23,4 @@ plan tests => 4;
   like ($@, qr/Unknown options: foobar/, 'unknown options');
 }
 
-# Add test for bad arguments to strict and warnings.
+# Add test for bad arguments to strict and warnings, and package
