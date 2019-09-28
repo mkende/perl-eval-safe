@@ -69,6 +69,10 @@ for my $safe (0..1) {
     like($@, qr/Package.*does not exist/, 'share from non-existent package'.$s);
   }{
     my $eval = Eval::Safe->new(safe => $safe);
+    eval { $eval->share_from('t', '$does_not_exist') };
+    ok(!$@, 'share non-existent symbol'.$s);
+  }{
+    my $eval = Eval::Safe->new(safe => $safe);
     $eval->share_from('t', '&foo', '*bar');
     $t::foo = 1;
     $t::bar = 2;

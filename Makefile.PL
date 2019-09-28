@@ -16,6 +16,7 @@ WriteMakefile(
     },
     PREREQ_PM => {
         'Carp'                  => 0,
+        'File::Spec::Functions' => 0,
         'List::Util'            => 0,
         'Safe'                  => 0,
         'Scalar::Util'          => 0,

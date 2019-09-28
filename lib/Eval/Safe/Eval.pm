@@ -10,6 +10,7 @@ use warnings;
 use parent 'Eval::Safe';
 
 use Carp;
+use File::Spec::Functions qw(rel2abs);
 
 # Count the number of Eval::Safe::Eval object created to assign each of them a
 # specific package name.
@@ -41,7 +42,17 @@ sub eval {
   } else {
     @ret = scalar CORE::eval($eval_str);
   }
+  print {$this->{debug}} "Eval returned an error: $@" if $this->{debug} && $@;  
   return $this->_wrap_code_refs(\&_wrap_in_eval, @ret);
+}
+
+sub do {
+  my ($this, $file) = @_;
+  # do can open relative paths, but in that case it looks them up in the @INC
+  # directory, which we want to avoid.
+  # We don't use abs_path here to not die (just yet) if the file does not exist.
+  my $abs_path = rel2abs($file);
+  $this->eval("my \$r = do '${abs_path}'; die \$@ if \$@; \$r");
 }
 
 # To emulate the behavior of the Safe approach (where code returned by eval is
@@ -62,11 +73,6 @@ sub _wrap_in_eval {
     }
     $this->_wrap_code_refs(\&_wrap_in_eval, @ret)
   };
-}
-
-sub package {
-  my ($this) = @_;
-  return $this->{package};
 }
 
 1;

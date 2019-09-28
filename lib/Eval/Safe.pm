@@ -15,22 +15,27 @@ our $VERSION = '0.01';
 sub new {
   my ($class, %options) = @_;
   croak "Eval::Safe->new called with invalid class name: $class" unless $class eq 'Eval::Safe';
-  my @known_options = qw(safe strict warnings debug package);
+  my @known_options = qw(safe strict warnings debug package force_package);
   my @unknown_options = grep {my $k = $_; none { $k eq $_ } @known_options } keys %options; 
   if (@unknown_options) {
     croak "Unknown options: ".join(' ', @unknown_options);
   }
   $options{strict} = _make_pragma('strict', $options{strict});
   $options{warnings} = _make_pragma('warnings', $options{warnings});
-  if ($options{package}) {
+  if ($options{package} and not $options{force_package}) {
     $options{package} = Eval::Safe::_validate_package_name($options{package});
-    croak "Package $options{package} already not exist" if eval "%$options{package}::";
+    croak "Package $options{package} already exists" if eval "%$options{package}::";
   }
   if ($options{safe} // 0 > 0) {
     return Eval::Safe::Safe->new(%options);
   } else {
     return Eval::Safe::Eval->new(%options);
   }
+}
+
+sub package {
+  my ($this) = @_;
+  return $this->{package};
 }
 
 sub wrap {
@@ -94,9 +99,11 @@ sub _make_pragma() {
   } elsif ($reftype eq 'SCALAR') {
     return "use ${pragma} '$arg';";
   } elsif ($reftype eq 'ARRAY') {
-    return ('use ${pragma} qw('.join(' ', @$arg).');');
+    # We should probably use Data::Dumper to format the arg list properly in
+    # case some of the args contain a space.
+    return ("use ${pragma} qw(".join(' ', @$arg).');');
   } elsif ($reftype eq 'HASH') {
-    return ('use ${pragma} qw('.join(' ', %$arg).');');
+    return ("use ${pragma} qw(".join(' ', %$arg).');');
   } else {
     croak "Invalid argument for '${pragma}' option, expected a scalar or array reference";
   }
@@ -170,41 +177,86 @@ L<Safe> module, but faster, as we don't try to be safe.
 
 =head1 DESCRIPTION
 
-The L<Safe> module does 3 things when running user-provided code: run the code
-in a specific package so that variables in the calling code are not modified by
-mistake; actually hide all the existing packages so that the executed code
-cannot modify them; and limit the set of operations that can be executed by the
-code to further try to make it safe (prevents it from modifying the system,
-etc.).
+The standard B<Safe> module does 4 things when running user-provided code:
+compiling and running the string as Perl code; running the code in a specific
+package so that variables in the calling code are not modified by mistake;
+hiding all the existing packages so that the executed code cannot modify them;
+and limiting the set of operations that can be executed by the code to further
+try to make it safe (prevents it from modifying the system, etc.).
 
-The B<Eval::Safe> module here only does the first of these things (changing the 
-namespace in which the code is executed) to make it conveniant to run
-user-provided code, as long as you can trust that code. The benefit is that this
-is around three times faster than using L<Safe> (especially for small pieces of
-code).
+By comparison, the B<Eval::Safe> module here only does the first two of these
+things (compiling the code and changing the namespace in which it is executed)
+to make it conveniant to run user-provided code, as long as you can trust that
+code. The benefit is that this is around three times faster than using L<Safe>
+(especially for small pieces of code).
 
-=head2 Safe::eval->new(%options)
+
+=head2 CONSTRUCTOR/DESTRUCTOR
+
+=head3 B<new(%options)>
+
+Creates a new Eval::Safe object. Some options may be passed to this call:
 
 =over 4
 
 =item B<safe> => I<int>
 
+If passed on positive value, then the evaluation of the code will use the
+B<Safe> module instead of the B<eval> function. This is slower but means that
+the code won't be able to read or modify variables from your code unless
+explicitly shared.
+
 =item B<strict> => I<options>
+
+If passed a C<true> value then the code executed by the Eval::Safe object will
+be compiled under C<use strict>. You can pass a reference to an array or hash
+to provide options that are passed to the C<use strict> pragma.
 
 =item B<warnings> => I<options>
 
-=item B<debug> => I<int>
+If passed a C<true> value then the code executed by the Eval::Safe object will
+be compiled under C<use warnings>. You can pass a reference to an array or hash
+to provide options that are passed to the C<use warnings> pragma.
+
+=item B<debug> => I<FILE>
+
+Sets debug mode. You should pass this option a file reference to which the debug
+output will be written. This is typically C<*STDERR>.
 
 =item B<package> => I<string>
 
+Specify explicitly the package that will be used to compile the code passed to
+the Eval::Safe object. This must be a valid package name and the package itself
+must not yet exist.
+
+Note that if you have explicit mention of this package in your code then the
+Perl compiler will auto-vivify the package and it will fail the "must not exist
+yet" test. You can work around this limitation either by wrapping such reference
+to the package in an C<eval(str)> call, or by using the B<force_package> option
+below.
+
+=item B<force_package> => I<boolean>
+
+Remove all check on the package name specified with B<package> (both in term of
+validity and of existance).
+
+Be careful that by default the package will be deleted when the Eval::Safe
+object is deleted. This means that existing variables that would refer to that
+package are no longer valid, even assigning to these variable will not re-create
+the package (unless the code setting the variable is compiled again through an
+C<eval(str)> expression or you're using a string as a reference to the package
+or variable).
+
 =back
 
-=head2 DESTROY
+=head3 destructor
 
 When the object goes out of scope, its main package and all its sub-packages are
 deleted automatically.
 
-=head2 $eval->eval($code)
+=head2 METHODS
+
+=head3 B<eval($code)>
 
 Executes the given string as Perl code in the environment of the current object.
 
@@ -227,13 +279,13 @@ run as if through this C<eval> method. In particular, exceptions will be trapped
 and C<$@> will be set instead. This property is recursive to all the
 code-references possibly returned in turn by these functions.
 
-=head2 $eval->wrap($code)
+=head3 B<wrap($code)>
 
 Returns a code-reference that, when executed, execute the content of the Perl
 code passed in the string in the context of the Eval::Safe object. This call is
 similar to C<$eval->eval("sub { STR }")>.
 
-=head2 $eval->share('$var', '@foo', ...)
+=head3 B<share('$var', '@foo', ...)>
 
 Shares the listed variables from the current package with the Perl environment
 of the Eval::Safe object. The list must be a list of strings containing the
@@ -241,31 +293,45 @@ names of the variables to share, including their leading sigils (one of B<$>,
 B<@>, B<%>, B<&>, or B<*>). When sharing a glob (C<*foo>) then all the C<foo>
 variables are shared.
 
-=head2 $eval->share_from('Package', '$var', ...)
+=head3 B<share_from('Package', '$var', ...)>
 
 Shares the listed variables from a specific package. The variables are shared
 into the main package of the Perl environment of the Eval::Safe object as when
 using the C<share> method.
 
-=head2 package
+=head3 B<package()>
 
-=head2 interpolate
+Returns the name of the package used by the Eval::Safe object. This is the
+package that was passed to the constructor if one was specified explicitly.
 
-=head2 var_ref
+=head3 B<interpolate($str)>
 
-TODO: do (see do_load in ptp), varglob.
+Interpolates the given string in the environment of the Eval::Safe object.
 
-TODO use module, probably need to be manually loaded like in ptp.
+=head3 B<var_ref('$var_name')>
 
+Returns a reference to the variable whose name is given from the Eval::Safe
+object package. The variable name must have its leading sigil (one of B<$>,
+B<@>, B<%>, B<&>, or B<*>).
+
+=head3 B<do('file_name')>
+
+Loads the given file name into the environment of the Eval::Safe object. The
+file name may be relative or absolute but the B<@INC> array is not used (as
+opposed to the standard B<do> function).
+
+If B<do> can read the file but cannot compile it, it returns undef and sets an
+error message in B<$@>. If do cannot read the file, it returns undef and sets
+B<$!> to the error. Always check B<$@> first, as compilation could fail in a
+way that also sets B<$!>. If the file is successfully compiled, do returns the
+value of the last expression evaluated.
 
 =head1 CAVEATS
 
-Safe is slower than not safe
-
 To bypass a bug with the Safe that hides all exceptions that could occur in code
-wrapped by it, this module is using a forked version of the Safe module.
-
-Some operation won't work (use? load?).
+wrapped by it, this module is currently using a forked version of the standard
+Safe module. This may cause issues as that module relies on undocumented
+internals of Perl that are maybe subject to change.
 
 =head1 AUTHOR
 

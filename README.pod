@@ -8,18 +8,18 @@ L<Safe> module, but faster, as we don't try to be safe.
 
 =head2 DOCUMENTATION
 
-The L<Safe> module does 3 things when running user-provided code: run the code
-in a specific package so that variables in the calling code are not modified by
-mistake; actually hide all the existing packages so that the executed code
-cannot modify them; and limit the set of operations that can be executed by the
-code to further try to make it safe (prevents it from modifying the system,
-etc.).
+The standard L<Safe> module does 4 things when running user-provided code:
+compiling and running the string as Perl code; running the code in a specific
+package so that variables in the calling code are not modified by mistake;
+hiding all the existing packages so that the executed code cannot modify them;
+and limiting the set of operations that can be executed by the code to further
+try to make it safe (prevents it from modifying the system, etc.).
 
-The B<Eval::Safe> module here only does the first of these things (changing the 
-namespace in which the code is executed) to make it conveniant to run
-user-provided code, as long as you can trust that code. The benefit is that this
-is around three times faster than using L<Safe> (especially for small pieces of
-code).
+By comparison, the B<Eval::Safe> module here only does the first two of these
+things (compiling the code and changing the namespace in which it is executed)
+to make it conveniant to run user-provided code, as long as you can trust that
+code. The benefit is that this is around three times faster than using L<Safe>
+(especially for small pieces of code).
 
 The documentation for the module can be found on L<meta::cpan|Eval::Safe>.
 After the module is installed, you can also get its documentation by running
@@ -40,7 +40,8 @@ can check which Perl you have installed with the following command:
 
 =head3 Installing from the Git sources
 
-To install the program manually from Git, you can run the following commands (you do need to have the B<make> and B<git> program installed):
+To install this module manually from Git, you can run the following commands
+(you do need to have the B<make> and B<git> program installed):
 
     git clone https://github.com/mkende/perl-eval-safe.git
     cd perl-eval-safe
